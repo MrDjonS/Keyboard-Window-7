@@ -1,0 +1,158 @@
+body {
+    background: url('da.jpg') no-repeat center center fixed;
+    background-size: cover;
+    background-position: center 30%; 
+    color: rgb(0, 0, 0);
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+#root {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.menu-bar {
+    background-color: #f0f0f0;
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+    
+}
+
+.menu-button {
+    background-color: #e0e0e0;
+    border: none;
+    padding: 8px 15px;
+    margin: 0 5px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+.menu-button.active {
+    background-color: #d0d0d0;
+}
+
+.keyboard-container {
+    border-radius: 15px;
+    padding: 20px;
+    background-color: rgba(255, 0, 0, 0);
+    display: inline-block;
+}
+.input-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+.keyboard {
+    display: grid;
+    grid-template-rows: repeat(5, auto);
+    gap: 5px;
+    padding: 10px;
+}
+
+.row {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+}
+
+.key {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    background-color: rgb(255, 255, 255);
+    color: rgb(0, 0, 0);
+    border: 1px solid rgb(110, 9, 9);
+    border-radius: 5px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 14px;
+    height: 50px;
+    width: 50px;
+}
+
+.key:active {
+    background-color: rgb(255, 255, 255);
+    color: rgb(0, 217,255);
+}
+
+.wide-key {
+    width: 100px;
+}
+
+.input {
+    padding: 10px;
+    font-size: 18px;
+    width: 90%;
+    max-width: 600px;
+    margin-right: 10px;
+}
+.copy-button, .help-button{
+    background-color: #e0e0e0;
+    border: 1px solid #ccc;
+    padding: 10px 15px;
+    cursor: pointer;
+    border-radius: 5px;
+    font-size: 14px;
+    height: 40px;
+    margin-left: 5px;
+}
+.keyboard-image {
+    max-width: 100%; 
+    height: auto; 
+    margin-bottom: 10px; 
+    border-radius: 10px; 
+}
+.key.active {
+    background-color: lightblue;
+    transform: scale(0.9);
+    transition: transform 0.1s;
+}
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+}
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #000;
+    border-radius: 10px;
+    width: 60%;
+    max-width: 600px;
+     text-align: center;
+}
+.modal-logo{
+    max-width: 150px;
+    height: auto;
+    margin-bottom: 10px;
+}
+.close-modal-button{
+    background-color: #e0e0e0;
+    border: 1px solid #ccc;
+    padding: 10px 15px;
+    cursor: pointer;
+    border-radius: 5px;
+    font-size: 14px;
+    height: 40px;
+    margin-top: 15px;
+}
