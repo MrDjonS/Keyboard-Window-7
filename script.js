@@ -1,6 +1,5 @@
 const textInput = document.getElementById("textInput");
 const keyboard = document.getElementById("keyboard");
-const copyButton = document.getElementById('copyButton');
 const helpButton = document.getElementById('helpButton');
 const helpModal = document.getElementById('helpModal');
 const closeModal = document.getElementById('closeModal');
@@ -9,10 +8,23 @@ class VirtualKeyboard {
     constructor(inputElement, keyboardElement) {
         this.inputElement = inputElement;
         this.keyboardElement = keyboardElement;
-        this.copyButton = copyButton;
         this.helpButton = helpButton;
         this.helpModal = helpModal;
         this.closeModal = closeModal;
+         this.helpText = {
+            title: "Справка по горячим клавишам:",
+            hotkeys: [
+                "<b>Ctrl + Backspace:</b> Удалить весь текст.",
+                "<b>Delete:</b> Удалить символ справа от курсора или выделенный текст.",
+                "<b>Backspace:</b> Удалить символ слева от курсора или выделенный текст.",
+                "<b>Shift + Alt:</b> Переключить язык.",
+                "<b>Ctrl + C:</b> Скопировать выделенный текст.",
+                "<b>Ctrl + V:</b> Вставить текст из буфера обмена.",
+                "<b>Ctrl + Z:</b> Отменить последнее действие.",
+                "<b>Alt  + F4:</b> 1 млн долларов .",
+            ],
+              closeButtonText: "Закрыть"
+         };
         this.layouts = {
             en: [
                 ["`", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", "Backspace"],
@@ -25,24 +37,25 @@ class VirtualKeyboard {
                 ["ё", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", "Backspace"],
                 ["Tab", "Й", "Ц", "У", "К", "Е", "Н", "Г", "Ш", "Щ", "З", "Х", "Ъ", "\\"],
                 ["Caps Lock", "Ф", "Ы", "В", "А", "П", "Р", "О", "Л", "Д", "Ж", "Э", "Enter"],
-                ["Shift", "Я", "Ч", "С", "М", "И", "Т", "Ь", "Б", "Ю", ".", "Shift"],
+                 ["Shift", "Я", "Ч", "С", "М", "И", "Т", "Ь", "Б", "Ю", ".", "Shift"],
                 ["Ctrl", "Alt", "Space", "Alt", "Ctrl"]
             ]
-        }; // ГДЕ ЯПОНСКИЙ >:(
+        };
         this.currentLayout = "en";
         this.capsLock = false;
         this.shiftPressed = false;
         this.undoStack = [];
         this.redoStack = [];
+        this.cursorPosition = 0;
         this.init();
     }
 
     init() {
         this.renderKeyboard();
         this.setupEventListeners();
-        this.copyButton.addEventListener('mousedown', () => this.handleCopy());
         this.helpButton.addEventListener('mousedown', () => this.openModal());
         this.closeModal.addEventListener('mousedown', () => this.closeModalFunc());
+        this.updateCursor();
     }
 
     renderKeyboard() {
@@ -61,11 +74,8 @@ class VirtualKeyboard {
                     keyElement.addEventListener("mousedown", () => this.handleKeyInput(" "));
                 } else if (key === "Backspace") {
                     keyElement.classList.add("wide-key");
-                    this.addHoldingEvent(keyElement, () => this.handleBackspace());
-                }  else if (key === "Delete") {
-                    keyElement.classList.add("wide-key");
-                    keyElement.addEventListener("mousedown", () => this.handleDelete());
-                }
+                   this.addHoldingEvent(keyElement, () => this.handleBackspace());
+                 }
                  else if (key === "Enter") {
                     keyElement.classList.add("wide-key");
                     keyElement.addEventListener("mousedown", () => this.handleKeyInput("\n"));
@@ -76,34 +86,25 @@ class VirtualKeyboard {
                     keyElement.classList.add("wide-key");
                      keyElement.addEventListener("mousedown", () => this.handleShiftDown());
                     keyElement.addEventListener("mouseup", () => this.handleShiftUp());
-                     keyElement.addEventListener("mouseleave", () => this.handleShiftUp());
+                    keyElement.addEventListener("mouseleave", () => this.handleShiftUp());
                 }
-                
+
                 else if (["Alt", "Ctrl", "Tab"].includes(key)) {
                     keyElement.classList.add("wide-key");
                 } else {
-                    this.addHoldingEvent(keyElement, () => this.handleKeyInput(this.getKeyText(key)));
+                      this.addHoldingEvent(keyElement, () => this.handleKeyInput(this.getKeyText(key)));
                 }
-                
+
                 rowElement.appendChild(keyElement);
             });
             this.keyboardElement.appendChild(rowElement);
         });
-
-        // Большое проблема с клавишей Delete :(
-         const deleteButton = document.createElement('div');
-         deleteButton.className = 'key wide-key';
-         deleteButton.textContent = 'Delete';
-          this.addHoldingEvent(deleteButton, () => this.handleDelete());
-
-         this.keyboardElement.lastChild.appendChild(deleteButton)
-
     }
 
-     handleShiftDown() {
+    handleShiftDown() {
         this.shiftPressed = true;
         this.renderKeyboard();
-     }
+    }
     handleShiftUp() {
         this.shiftPressed = false;
         this.renderKeyboard();
@@ -111,7 +112,7 @@ class VirtualKeyboard {
     getKeyText(key) {
         if (key.length === 1 && /[a-zA-Zа-яёА-ЯЁ]/.test(key)) {
             if (this.shiftPressed) {
-               return this.capsLock ? key.toLowerCase() : key.toUpperCase();
+                return this.capsLock ? key.toLowerCase() : key.toUpperCase();
             }
             return this.capsLock ? key.toUpperCase() : key.toLowerCase();
         }
@@ -128,73 +129,45 @@ class VirtualKeyboard {
             element.addEventListener(event, () => clearInterval(interval));
         });
     }
-
-    handleBackspace() {
-        this.saveState();
-         if (this.inputElement.selectionStart === this.inputElement.selectionEnd) {
-            this.inputElement.value = this.inputElement.value.slice(0, this.inputElement.selectionStart - 1) + this.inputElement.value.slice(this.inputElement.selectionEnd);
-            this.inputElement.selectionStart = this.inputElement.selectionEnd = this.inputElement.selectionStart - 1;
-         } else {
-             this.inputElement.value = this.inputElement.value.slice(0, this.inputElement.selectionStart) + this.inputElement.value.slice(this.inputElement.selectionEnd);
-            this.inputElement.selectionEnd = this.inputElement.selectionStart;
-          }
-    }
-
-    handleDelete() {
-         this.saveState();
+   handleBackspace() {
+       this.saveState();
         if (this.inputElement.selectionStart === this.inputElement.selectionEnd) {
-             this.inputElement.value = this.inputElement.value.slice(0, this.inputElement.selectionStart ) + this.inputElement.value.slice(this.inputElement.selectionEnd + 1);
-             this.inputElement.selectionStart = this.inputElement.selectionEnd = this.inputElement.selectionStart;
+            if (this.cursorPosition > 0) {
+                 this.inputElement.value = this.inputElement.value.slice(0, this.cursorPosition - 1) + this.inputElement.value.slice(this.cursorPosition);
+                this.cursorPosition--;
+            }
         } else {
-            this.inputElement.value = this.inputElement.value.slice(0, this.inputElement.selectionStart) + this.inputElement.value.slice(this.inputElement.selectionEnd);
-            this.inputElement.selectionEnd = this.inputElement.selectionStart;
+             this.inputElement.value = this.inputElement.value.slice(0, this.inputElement.selectionStart) + this.inputElement.value.slice(this.inputElement.selectionEnd);
+             this.cursorPosition = this.inputElement.selectionStart;
          }
-    }
-
-    handleCopy() {
-        if (this.inputElement.selectionStart !== this.inputElement.selectionEnd) {
-            const selectedText = this.inputElement.value.substring(this.inputElement.selectionStart, this.inputElement.selectionEnd);
-             navigator.clipboard.writeText(selectedText).then(() => {
-  
-             }).catch(err => {
-                console.error('Failed to copy text: ', err);
-            });
-        }
+        this.updateCursor();
     }
 
     handleKeyInput(char) {
         this.saveState();
-         if (this.inputElement.selectionStart === this.inputElement.selectionEnd) {
-             this.inputElement.value = this.inputElement.value.slice(0,this.inputElement.selectionStart) + char + this.inputElement.value.slice(this.inputElement.selectionEnd);
-             this.inputElement.selectionStart = this.inputElement.selectionEnd = this.inputElement.selectionStart + char.length;
-        } else {
-            this.inputElement.value = this.inputElement.value.slice(0, this.inputElement.selectionStart) + char + this.inputElement.value.slice(this.inputElement.selectionEnd);
-            this.inputElement.selectionStart = this.inputElement.selectionEnd = this.inputElement.selectionStart + char.length;
-         }
-    }
-    
-    handlePaste() {
-        navigator.clipboard.readText().then(text => {
-           this.saveState();
-            if(this.inputElement.selectionStart === this.inputElement.selectionEnd){
-                 this.inputElement.value = this.inputElement.value.slice(0, this.inputElement.selectionStart) + text + this.inputElement.value.slice(this.inputElement.selectionEnd);
-                 this.inputElement.selectionStart = this.inputElement.selectionEnd = this.inputElement.selectionStart + text.length;
-             } else {
-                 this.inputElement.value = this.inputElement.value.slice(0, this.inputElement.selectionStart) + text + this.inputElement.value.slice(this.inputElement.selectionEnd);
-                this.inputElement.selectionStart = this.inputElement.selectionEnd = this.inputElement.selectionStart + text.length;
-             }
-            
-       });
+        this.inputElement.value = this.inputElement.value.slice(0, this.cursorPosition) + char + this.inputElement.value.slice(this.cursorPosition);
+        this.cursorPosition += char.length;
+        this.updateCursor();
     }
 
-    toggleCapsLock() {
+    handlePaste() {
+        navigator.clipboard.readText().then(text => {
+            this.saveState();
+             this.inputElement.value = this.inputElement.value.slice(0, this.cursorPosition) + text + this.inputElement.value.slice(this.cursorPosition);
+             this.cursorPosition += text.length;
+              this.updateCursor();
+        });
+    }
+    
+      toggleCapsLock() {
         this.capsLock = !this.capsLock;
         this.renderKeyboard();
     }
-    openModal(){
-         this.helpModal.style.display = 'block';
+    openModal() {
+       this.renderHelpModal();
+       this.helpModal.style.display = 'block';
     }
-      closeModalFunc() {
+     closeModalFunc() {
         this.helpModal.style.display = 'none';
     }
     switchLanguage() {
@@ -203,40 +176,90 @@ class VirtualKeyboard {
         this.currentLayout = languages[(currentIndex + 1) % languages.length];
         this.renderKeyboard();
     }
-     saveState() {
+    saveState() {
         this.undoStack.push({
             value: this.inputElement.value,
-            selectionStart: this.inputElement.selectionStart,
-            selectionEnd: this.inputElement.selectionEnd
+            cursorPosition: this.cursorPosition,
         });
-         this.redoStack = [];
+        this.redoStack = [];
     }
-    
+
     undo() {
         if (this.undoStack.length > 0) {
             const previousState = this.undoStack.pop();
             this.redoStack.push({
-                 value: this.inputElement.value,
-                 selectionStart: this.inputElement.selectionStart,
-                 selectionEnd: this.inputElement.selectionEnd
+                value: this.inputElement.value,
+                cursorPosition: this.cursorPosition,
             });
-             this.inputElement.value = previousState.value;
-            this.inputElement.selectionStart = previousState.selectionStart;
-            this.inputElement.selectionEnd = previousState.selectionEnd;
+           this.inputElement.value = previousState.value;
+            this.cursorPosition = previousState.cursorPosition;
+            this.updateCursor();
         }
     }
-     redo() {
+    redo() {
         if (this.redoStack.length > 0) {
             const nextState = this.redoStack.pop();
-              this.undoStack.push({
+            this.undoStack.push({
                 value: this.inputElement.value,
-                 selectionStart: this.inputElement.selectionStart,
-                selectionEnd: this.inputElement.selectionEnd
-             });
-             this.inputElement.value = nextState.value;
-            this.inputElement.selectionStart = nextState.selectionStart;
-            this.inputElement.selectionEnd = nextState.selectionEnd;
+                cursorPosition: this.cursorPosition,
+            });
+            this.inputElement.value = nextState.value;
+            this.cursorPosition = nextState.cursorPosition;
+            this.updateCursor();
+         }
+    }
+    updateCursor() {
+        const text = this.inputElement.value.replace('|', '');
+        this.inputElement.value = text;
+        const textBeforeCursor = this.inputElement.value.slice(0, this.cursorPosition);
+        const textAfterCursor = this.inputElement.value.slice(this.cursorPosition);
+        this.inputElement.value = textBeforeCursor + "|" + textAfterCursor;
+        this.inputElement.selectionStart = this.inputElement.selectionEnd = textBeforeCursor.length;
+    }
+     handleArrowLeft() {
+         if (this.cursorPosition > 0) {
+             this.cursorPosition--;
+            this.updateCursor();
+         }
+    }
+
+    handleArrowRight() {
+        if (this.cursorPosition < this.inputElement.value.length) {
+            this.cursorPosition++;
+           this.updateCursor();
         }
+    }
+    renderHelpModal(){
+         this.helpModal.innerHTML = '';
+          const modalContent = document.createElement('div');
+        modalContent.className = 'modal-content';
+
+        const logo = document.createElement('img');
+         logo.src = "Unofficial_Windows_logo_variant_-_2002–2012_(Multicolored).svg";
+         logo.alt = "Windows Logo";
+        logo.className = "modal-logo";
+
+        const title = document.createElement('h2');
+        title.textContent = this.helpText.title;
+
+        modalContent.appendChild(logo);
+        modalContent.appendChild(title);
+
+        this.helpText.hotkeys.forEach(key => {
+            const p = document.createElement('p');
+             p.innerHTML = key;
+            modalContent.appendChild(p);
+        });
+
+          const closeButton = document.createElement('button');
+        closeButton.id = 'closeModal';
+        closeButton.className = 'close-modal-button';
+        closeButton.textContent = this.helpText.closeButtonText;
+         closeButton.addEventListener('mousedown', () => this.closeModalFunc());
+        modalContent.appendChild(closeButton)
+
+
+        this.helpModal.appendChild(modalContent);
     }
     setupEventListeners() {
         const menuButtons = document.querySelectorAll('.menu-button');
@@ -248,40 +271,44 @@ class VirtualKeyboard {
                 button.classList.add('active');
 
                 if (button.dataset.target === 'keyboard-container') {
-                   
+
                 }
             });
         });
 
         document.addEventListener("keydown", (event) => {
             const pressedKey = event.key;
-             const keys = Array.from(this.keyboardElement.getElementsByClassName("key"));
+            const keys = Array.from(this.keyboardElement.getElementsByClassName("key"));
 
-             const virtualKey = keys.find(key =>
+              const virtualKey = keys.find(key =>
                 key.textContent.toLowerCase() === pressedKey.toLowerCase() ||
                 (pressedKey === " " && key.textContent === "Space") ||
                 (pressedKey === "Backspace" && key.textContent === "Backspace") ||
-                (pressedKey === "Delete" && key.textContent === "Delete") ||
-                 (pressedKey === "Enter" && key.textContent === "Enter") ||
-                 (pressedKey === "Tab" && key.textContent === "Tab") ||
-                 (pressedKey === "CapsLock" && key.textContent === "Caps Lock") ||
-                 (pressedKey === "Shift" && key.textContent === "Shift")
+                (pressedKey === "Enter" && key.textContent === "Enter") ||
+                (pressedKey === "Tab" && key.textContent === "Tab") ||
+                (pressedKey === "CapsLock" && key.textContent === "Caps Lock") ||
+                  (pressedKey === "Shift" && key.textContent === "Shift")
             );
-
              if (event.ctrlKey && event.key === 'c') {
-                 this.handleCopy();
+                this.handleCopy();
                 event.preventDefault();
             } else if (event.ctrlKey && event.key === 'v') {
                 this.handlePaste();
                 event.preventDefault();
             } else if (event.ctrlKey && event.key === 'z') {
-                 this.undo();
+               this.undo();
                 event.preventDefault();
-           }  else  if (event.ctrlKey && event.shiftKey && event.key === 'Z') {
+           } else if (event.ctrlKey && event.shiftKey && event.key === 'Z') {
                 this.redo();
-               event.preventDefault();
+                event.preventDefault();
             }
-
+            if (event.key === "ArrowLeft") {
+                this.handleArrowLeft();
+                event.preventDefault();
+             } else if (event.key === "ArrowRight") {
+                this.handleArrowRight();
+                event.preventDefault();
+            }
             if (virtualKey) {
                 virtualKey.classList.add("active");
             }
@@ -290,60 +317,53 @@ class VirtualKeyboard {
                 this.toggleCapsLock();
                 event.preventDefault();
             } else if (event.key === "Backspace") {
-                 if (event.ctrlKey) {
-                      this.inputElement.value = "";
-                 } else {
-                    this.handleBackspace();
+                if (event.ctrlKey) {
+                    this.inputElement.value = "";
+                     this.cursorPosition = 0;
+                    this.updateCursor();
+                } else {
+                     this.handleBackspace();
                  }
                 event.preventDefault();
-            } else if (event.key === "Delete") {
-                this.handleDelete();
+           }  else if (event.key === "Shift") {
+                this.handleShiftDown()
                 event.preventDefault();
-            }else if (event.key === "Shift"){
-                  this.handleShiftDown()
-                   event.preventDefault();
             }
-            
+
             else if (event.key.length === 1) {
-                 const char = this.getKeyText(event.key);
+                const char = this.getKeyText(event.key);
                 this.handleKeyInput(char);
                 event.preventDefault();
             } else if (event.shiftKey && event.altKey) {
-                 this.switchLanguage();
+                this.switchLanguage();
             }
         });
 
         document.addEventListener("keyup", (event) => {
             const pressedKey = event.key;
-             const keys = Array.from(this.keyboardElement.getElementsByClassName("key"));
+            const keys = Array.from(this.keyboardElement.getElementsByClassName("key"));
 
-            const virtualKey = keys.find(key =>
-                key.textContent.toLowerCase() === pressedKey.toLowerCase() ||
+              const virtualKey = keys.find(key =>
+                 key.textContent.toLowerCase() === pressedKey.toLowerCase() ||
                 (pressedKey === " " && key.textContent === "Space") ||
                 (pressedKey === "Backspace" && key.textContent === "Backspace") ||
-                (pressedKey === "Delete" && key.textContent === "Delete") ||
                 (pressedKey === "Enter" && key.textContent === "Enter") ||
                 (pressedKey === "Tab" && key.textContent === "Tab") ||
                 (pressedKey === "CapsLock" && key.textContent === "Caps Lock") ||
-                  (pressedKey === "Shift" && key.textContent === "Shift")
+                (pressedKey === "Shift" && key.textContent === "Shift")
             );
-
             if (virtualKey) {
                 virtualKey.classList.remove("active");
-             }
-             if (event.key === "Shift") {
+            }
+            if (event.key === "Shift") {
                  this.handleShiftUp()
-                   event.preventDefault();
+                event.preventDefault();
             }
         });
-
-        this.inputElement.addEventListener('focus', () => {
-            this.inputElement.selectionStart = this.inputElement.value.length;
+         this.inputElement.addEventListener('focus', () => {
+            this.cursorPosition = this.inputElement.value.length;
+            this.updateCursor();
         });
-
-         this.inputElement.addEventListener('select', () => {
-           
-         });
     }
 }
 
