@@ -1,17 +1,12 @@
 const textInput = document.getElementById("textInput");
 const keyboard = document.getElementById("keyboard");
-const helpButton = document.getElementById('helpButton');
-const helpModal = document.getElementById('helpModal');
-const closeModal = document.getElementById('closeModal');
 
 class VirtualKeyboard {
     constructor(inputElement, keyboardElement) {
         this.inputElement = inputElement;
         this.keyboardElement = keyboardElement;
-        this.helpButton = helpButton;
-        this.helpModal = helpModal;
-        this.closeModal = closeModal;
-         this.helpText = {
+
+        this.helpText = {
             title: "Справка по горячим клавишам:",
             hotkeys: [
                 "<b>Ctrl + Backspace:</b> Удалить весь текст.",
@@ -47,6 +42,11 @@ class VirtualKeyboard {
         this.undoStack = [];
         this.redoStack = [];
         this.cursorPosition = 0;
+        
+         this.helpButton = document.getElementById('helpButton');
+         this.helpModal = document.getElementById('helpModal');
+        this.closeModal = document.getElementById('closeModal');
+       
         this.init();
     }
 
@@ -235,7 +235,7 @@ class VirtualKeyboard {
         modalContent.className = 'modal-content';
 
         const logo = document.createElement('img');
-         logo.src = "Unofficial_Windows_logo_variant_-_2002–2012_(Multicolored).svg";
+        logo.src = "Unofficial_Windows_logo_variant_-_2002–2012_(Multicolored).svg";
          logo.alt = "Windows Logo";
         logo.className = "modal-logo";
 
